@@ -1,38 +1,54 @@
-const manufacturers = [
-  "Boeing",
-  "Airbus",
-  "Lockheed",
-  "Embraer",
-  "Bombardier",
-  "Dassault"
-];
+const API_KEY = "123";  // TheSportsDB free key
+const BASE_URL = `https://www.thesportsdb.com/api/v1/json/${API_KEY}/searchplayers.php?p=`;
 
-const headers = {
-  "X-Api-Key": "Yp9oy59INOIyPeLPS5OCaA==EGp9wUtpORuYbG7s"
-};
+// Add click event
+document.getElementById("searchBtn").addEventListener("click", searchPlayers);
 
-async function getAircraftByManufacturers() {
-  let allAircraft = [];
+async function searchPlayers() {
+  const query = document.getElementById("playerInput").value.trim();
+  const resultsDiv = document.getElementById("results");
+  const countP = document.getElementById("count");
 
-  for (const company of manufacturers) {
-    const res = await fetch(
-      `https://api.api-ninjas.com/v1/aircraft?manufacturer=${company}`,
-      { headers }
-    );
+  resultsDiv.innerHTML = "";
+  countP.textContent = "";
 
-    const data = await res.json();
-
-    console.log(` ${company}:`, data.length, "aircraft");
-    console.log(data);
-
-    allAircraft.push(...data);
-
-    // small delay to avoid rate limits
-    await new Promise(r => setTimeout(r, 300));
+  if (!query) {
+    countP.textContent = "Please enter a player name.";
+    return;
   }
 
-  console.log(" TOTAL AIRCRAFT COLLECTED:", allAircraft.length);
-  console.log(allAircraft);
-}
+  countP.textContent = "Searching...";
 
-getAircraftByManufacturers();
+  try {
+    const res = await fetch(BASE_URL + encodeURIComponent(query));
+    const data = await res.json();
+
+    if (!data.player || data.player.length === 0) {
+      countP.textContent = "No players found.";
+      return;
+    }
+
+    countP.textContent = `Found ${data.player.length} players`;
+
+    data.player.forEach(player => {
+      const div = document.createElement("div");
+
+      div.innerHTML = `
+<strong>${player.strPlayer}</strong><br>
+Team: ${player.strTeam || "N/A"}<br>
+Position: ${player.strPosition || "N/A"}<br>
+Nationality: ${player.strNationality || "N/A"}<br>
+Date of Birth: ${player.dateBorn || "N/A"}<br>
+<img src="${player.strThumb || ''}" alt="${player.strPlayer}" width="150"><br>
+
+-----------------------------
+      `;
+
+      resultsDiv.appendChild(div);
+    });
+
+  } catch (err) {
+    console.error(err);
+    countP.textContent = "Error fetching player data.";
+  }
+}
